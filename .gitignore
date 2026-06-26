@@ -4,3 +4,6 @@
 *.prj
 *.shp
 *.shx
+
+# Ignore RStudio files
+.Rhistory
