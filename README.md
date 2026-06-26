@@ -1,5 +1,24 @@
 # Elevation-NDVI-Zones
-This repo contains R code for generating management zones using elevation data from Natural Resource Canada and NDVI imagery from Sentinel-2 (Earth Search). All you need is a field boundary. 
+This repo contains R code for generating management zones using elevation data from Natural Resource Canada and NDVI imagery from Sentinel-2 (Earth Search). All you need is a field boundary.
+
+## Web app (Shiny)
+
+A Shiny app ([app.R](app.R)) wraps the script below so you can upload a boundary, adjust the
+zoning parameters with sliders, and view/download results in a browser, without touching the R
+console. It calls the same `run_zone_pipeline()` function the script below defines (via
+[R/web_harness.R](R/web_harness.R)) — no separate logic, just a UI on top.
+
+Run locally:
+```r
+shiny::runApp(".")
+```
+
+Run via Docker:
+```bash
+docker build -t elevation-ndvi-zones .
+docker run --rm -p 3838:3838 elevation-ndvi-zones
+# then browse http://localhost:3838
+```
 
 # HRDEM + Sentinel-2 NDVI Zoning Tool
 
@@ -36,7 +55,11 @@ Open R or RStudio and set the working directory to the project root:
 ```r
 setwd("path/to/hrdem-ndvi-zones") #path to the folder the R script is in
 source("R/hrdem_ndvi_zones.R")
-res <- run_field_workflow(
+```
+Sourcing the file runs `run_zone_pipeline()` once with its default arguments (same behaviour
+as before); the returned list is assigned to `res`. To rerun with different settings:
+```r
+res <- run_zone_pipeline(k_range = 2:4, palette_mode = "viridis")
 ```
 By default, the script will-
 Use data/Boundary_3DayClay.geojson if it exists.
@@ -83,16 +106,16 @@ The script writes (for each k in k_range) as shapefiles (WGS84):
 Each shapefile includes a zone field and an empty Rate field.
 
 -3D viewing-
-After sourcing the script:
+After sourcing the script (which assigns the result to `res`):
 ```r
 # 3D elevation zones, k = 4
-
-show_zones_3d()
+res$show_zones_3d()
 
 # 3D elevation zones, k = 3
-show_zones_3d(source = "elev", k = 3)
+res$show_zones_3d(source = "elev", k = 3)
 
 # 3D NDVI zones (if NDVI available), k = 3
-show_zones_3d(source = "ndvi", k = 2, exaggeration = 50)
+res$show_zones_3d(source = "ndvi", k = 2, exaggeration = 50)
 ```
-This opens an interactive MapLibre map in your R graphics device / viewer.
+Each call returns the MapLibre htmlwidget; print it (or just call it at the console) to view it
+in your R graphics viewer.
