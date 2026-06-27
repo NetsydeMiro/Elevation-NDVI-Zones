@@ -8,13 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # rocker/geospatial already provides terra/sf/dplyr built against matching
 # GDAL/GEOS/PROJ; only the Shiny-specific packages need installing here.
-RUN R -e "install.packages(c('shiny','bslib','mapgl','viridis','curl','jsonlite','httr','zip'), repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('shiny','bslib','mapgl','viridis','curl','jsonlite','httr','zip','markdown'), repos='https://cloud.r-project.org')"
 
 WORKDIR /srv/app
 COPY .Rprofile ./.Rprofile
 COPY R/ ./R/
 COPY app.R ./app.R
 COPY data/ ./data/
+COPY MANUAL_WEBAPP.md MANUAL_GLOSSARY.md ./
 
 EXPOSE 3838
 

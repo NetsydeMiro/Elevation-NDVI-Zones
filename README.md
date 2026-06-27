@@ -6,7 +6,9 @@ This repo contains R code for generating management zones using elevation data f
 A Shiny app ([app.R](app.R)) wraps the script below so you can upload a boundary, adjust the
 zoning parameters with sliders, and view/download results in a browser, without touching the R
 console. It calls the same `run_zone_pipeline()` function the script below defines (via
-[R/web_harness.R](R/web_harness.R)) — no separate logic, just a UI on top.
+[R/web_harness.R](R/web_harness.R)) — no separate logic, just a UI on top. See
+[MANUAL_WEBAPP.md](MANUAL_WEBAPP.md) for a full walkthrough (also viewable inside the app itself,
+under the "Manual" tab).
 
 Run locally:
 ```r
@@ -21,6 +23,10 @@ docker run --rm -p 3838:3838 elevation-ndvi-zones
 ```
 
 # HRDEM + Sentinel-2 NDVI Zoning Tool
+
+See [MANUAL_SCRIPT.md](MANUAL_SCRIPT.md) for a full walkthrough of the script, and
+[MANUAL_GLOSSARY.md](MANUAL_GLOSSARY.md) for term definitions and a plain-language settings
+reference (shared by both manuals).
 
 This R script:
 - Downloads NRCan HRDEM 2 m DTM for a field boundary (via STAC API)

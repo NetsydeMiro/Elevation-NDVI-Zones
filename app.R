@@ -21,6 +21,7 @@ library(shiny)
 library(bslib)
 library(zip)
 library(mapgl)
+library(markdown)
 
 source(file.path("R", "web_harness.R"))
 
@@ -126,6 +127,9 @@ ui <- page_sidebar(
     ),
     nav_panel("Downloads",
       uiOutput("downloads_ui")
+    ),
+    nav_panel("Manual",
+      uiOutput("manual_content")
     )
   )
 )
@@ -283,6 +287,16 @@ server <- function(input, output, session) {
       p(sprintf("Field: %s", rs$result$field_name)),
       downloadButton("download_all", "Download all shapefiles (.zip)")
     )
+  })
+
+  output$manual_content <- renderUI({
+    # MANUAL_WEBAPP.md links to MANUAL_GLOSSARY.md's anchors as separate-file
+    # links (for GitHub rendering); rendered together here as one HTML doc,
+    # so those links are rewritten to plain in-page anchors.
+    webapp_md  <- paste(readLines("MANUAL_WEBAPP.md", warn = FALSE), collapse = "\n")
+    glossary_md <- paste(readLines("MANUAL_GLOSSARY.md", warn = FALSE), collapse = "\n")
+    combined_md <- gsub("MANUAL_GLOSSARY\\.md#", "#", paste(webapp_md, glossary_md, sep = "\n\n"))
+    HTML(markdown::markdownToHTML(text = combined_md, fragment.only = TRUE))
   })
 
   output$download_all <- downloadHandler(
