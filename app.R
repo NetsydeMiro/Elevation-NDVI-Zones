@@ -29,6 +29,7 @@ current_year <- as.integer(format(Sys.Date(), "%Y"))
 
 ui <- page_sidebar(
   title = "Elevation + NDVI Zone Mapping",
+  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
   sidebar = sidebar(
     width = 360,
 
@@ -101,15 +102,21 @@ ui <- page_sidebar(
 
   navset_tab(
     nav_panel("Elevation",
-      imageOutput("plot_elevation"),
-      imageOutput("plot_contours")
+      div(class = "plot-tab-scroll",
+        imageOutput("plot_elevation", height = "auto"),
+        imageOutput("plot_contours", height = "auto")
+      )
     ),
     nav_panel("NDVI",
-      uiOutput("ndvi_panel_ui")
+      div(class = "plot-tab-scroll",
+        uiOutput("ndvi_panel_ui")
+      )
     ),
     nav_panel("Zone maps",
-      imageOutput("plot_elev_zones_grid"),
-      uiOutput("ndvi_zones_grid_ui")
+      div(class = "plot-tab-scroll",
+        imageOutput("plot_elev_zones_grid", height = "auto"),
+        uiOutput("ndvi_zones_grid_ui")
+      )
     ),
     nav_panel("3D view",
       fluidRow(
@@ -216,7 +223,7 @@ server <- function(input, output, session) {
       shiny::validate(shiny::need(isTRUE(rs$success), "Run the analysis to see this plot."))
       path <- file.path(session_dir, filename)
       shiny::validate(shiny::need(file.exists(path), paste(label, "was not generated for this run.")))
-      list(src = path, contentType = "image/png", width = "100%")
+      list(src = path, contentType = "image/png", width = "100%", height = "auto")
     }, deleteFile = FALSE)
   }
 
@@ -232,7 +239,7 @@ server <- function(input, output, session) {
     if (!isTRUE(rs$result$have_ndvi)) {
       return(p(class = "text-muted", "NDVI shapefiles skipped (no suitable Sentinel-2 scene available)."))
     }
-    imageOutput("plot_elev_ndvi_panel")
+    imageOutput("plot_elev_ndvi_panel", height = "auto")
   })
   output$plot_elev_ndvi_panel <- render_block_image("plot_elev_ndvi_panel.png", "Elevation/NDVI panel")
 
@@ -242,7 +249,7 @@ server <- function(input, output, session) {
     if (!isTRUE(rs$result$have_ndvi)) {
       return(p(class = "text-muted", "NDVI zone plots skipped (no suitable Sentinel-2 scene available)."))
     }
-    imageOutput("plot_ndvi_zones_grid")
+    imageOutput("plot_ndvi_zones_grid", height = "auto")
   })
   output$plot_ndvi_zones_grid <- render_block_image("plot_ndvi_zones_grid.png", "NDVI zone grid")
 
