@@ -176,9 +176,10 @@ server <- function(input, output, session) {
     run_state(NULL)
 
     withProgress(message = "Running zone analysis", value = 0, {
-      incProgress(0.1, detail = "Fetching elevation + boundary...")
-      out <- run_pipeline_for_session(input$boundary_file, dials, session_dir)
-      incProgress(0.9, detail = "Done")
+      incProgress(0.1, detail = "Staging boundary upload...")
+      cb <- function(detail, amount) incProgress(amount, detail = detail)
+      out <- run_pipeline_for_session(input$boundary_file, dials, session_dir, progress_cb = cb)
+      incProgress(1, detail = "Done")
       run_state(out)
     })
 

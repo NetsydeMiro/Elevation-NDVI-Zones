@@ -67,8 +67,10 @@ stage_boundary_upload <- function(upload_df, session_dir) {
 #'   smooth_dist_ndvi).
 #' @param session_dir per-session directory; reused as both out_dir and
 #'   plot_dir so shapefiles and plot PNGs land in one place for zipping/serving.
+#' @param progress_cb optional function(detail, amount) forwarded to
+#'   run_zone_pipeline() for step-by-step UI progress reporting.
 #' @return list(success = TRUE/FALSE, error = NULL/string, result = NULL/list)
-run_pipeline_for_session <- function(upload_df, dials, session_dir) {
+run_pipeline_for_session <- function(upload_df, dials, session_dir, progress_cb = NULL) {
   # Clear any outputs from a previous run in this session so displayed
   # results/downloads always match the current dial settings.
   old_outputs <- list.files(
@@ -86,7 +88,8 @@ run_pipeline_for_session <- function(upload_df, dials, session_dir) {
         list(
           boundary_path = boundary_path,
           out_dir       = session_dir,
-          plot_dir      = session_dir
+          plot_dir      = session_dir,
+          progress_cb   = progress_cb
         ),
         dials
       )

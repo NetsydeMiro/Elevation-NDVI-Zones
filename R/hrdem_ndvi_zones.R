@@ -63,10 +63,18 @@ run_zone_pipeline <- function(
   smooth_dist_elev           = 3,
   smooth_dist_ndvi           = 0,
   out_dir                    = getwd(),
-  plot_dir                   = NULL     # if set, plot blocks are saved as PNGs here instead of drawn live
+  plot_dir                   = NULL,    # if set, plot blocks are saved as PNGs here instead of drawn live
+  progress_cb                = NULL     # optional function(detail, amount) for UI progress reporting
 ) {
 
 set.seed(1234)  # reproducible k-means / zones
+
+# Mirrors message() to an optional progress callback (e.g. Shiny's
+# incProgress()) so step-by-step console detail also drives a progress bar.
+report <- function(detail, amount = 0) {
+  message(detail)
+  if (!is.null(progress_cb)) progress_cb(detail, amount)
+}
 
 # -------------------- USER INPUTS --------------------
 if (is.null(boundary_path)) {
@@ -115,8 +123,8 @@ orig_crs   <- crs(boundary, proj = TRUE)
 file_name  <- basename(boundary_path)
 field_name <- sub("_.*$", "", tools::file_path_sans_ext(file_name))
 
-message("Boundary CRS: ", orig_crs)
-message("Field name:   ", field_name)
+report(paste0("Boundary CRS: ", orig_crs), 0.02)
+report(paste0("Field name: ", field_name), 0.02)
 
 # -------------------- HRDEM 2 m DTM (NO DTM REPROJECTION) --------------------
 fetch_hrdem_2m <- function(boundary, stac_url) {
@@ -157,21 +165,21 @@ fetch_hrdem_2m <- function(boundary, stac_url) {
     stop("No DTM asset found in HRDEM 2 m STAC response.")
   }
 
-  message("Using HRDEM 2 m asset: ", href)
+  report(paste0("Using HRDEM 2 m asset: ", href), 0.03)
   rast(paste0("/vsicurl/", href))
 }
 
 if (use_user_raster) {
   dtm <- rast(user_raster_path)
-  message("Using user raster: ", user_raster_path)
+  report(paste0("Using user raster: ", user_raster_path), 0.05)
 } else {
   dtm <- fetch_hrdem_2m(boundary, hrdem_stac_url)
-  message("Loaded HRDEM 2 m DTM via STAC.")
+  report("Loaded HRDEM 2 m DTM via STAC.", 0.10)
 }
 
 if (is.na(crs(dtm))) stop("DTM has no CRS.")
 dtm_crs <- crs(dtm, proj = TRUE)
-message("DTM CRS (2 m): ", dtm_crs)
+report(paste0("DTM CRS (2 m): ", dtm_crs), 0.02)
 
 # -------------------- CROP TO FIELD (2 m) --------------------
 boundary_dtm <- project(boundary, dtm_crs)
@@ -184,8 +192,10 @@ if (all(is.na(values(dtm_field_2m)))) {
   stop("DTM subset for field is all NA. Check CRS/extent alignment.")
 }
 
-message("dtm_field_2m resolution: ",
-        paste(res(dtm_field_2m), collapse = ", "))
+report(
+  paste0("dtm_field_2m resolution: ", paste(res(dtm_field_2m), collapse = ", ")),
+  0.02
+)
 
 if (!is.null(plot_dir)) png(file.path(plot_dir, "plot_elevation.png"), width = 900, height = 700, res = 120)
 par(mfrow = c(1, 1), mar = c(3, 3, 3, 4))
@@ -353,8 +363,13 @@ fetch_latest_s2_aug <- function(boundary,
     end_month_start <- as.Date(sprintf("%04d-%02d-01", year_for_s2, max_m))
     end_date        <- seq(end_month_start, by = "1 month", length.out = 2)[2] - 1
 
-    message("Searching Sentinel-2 from ", start_date, " to ", end_date,
-            " (offset = ", offset, " month(s), cloud <", cloud_max, "%)")
+    report(
+      paste0(
+        "Searching Sentinel-2 from ", start_date, " to ", end_date,
+        " (offset = ", offset, " month(s), cloud <", cloud_max, "%)"
+      ),
+      0.02
+    )
 
     datetime <- paste0(
       format(start_date, "%Y-%m-%d"), "T00:00:00Z/",
@@ -413,8 +428,11 @@ fetch_latest_s2_aug <- function(boundary,
 
   assets   <- feat$assets
   acq_date <- feat$properties$`datetime`
-  message("Using Sentinel-2 item acquired at: ", acq_date)
-  message("Available asset names: ", paste(names(assets), collapse = ", "))
+  report(paste0("Using Sentinel-2 item acquired at: ", acq_date), 0.06)
+  report(
+    paste0("Available asset names: ", paste(names(assets), collapse = ", ")),
+    0.04
+  )
 
   href_blue  <- get_asset_href(assets, c("^blue$", "blue"))
   href_green <- get_asset_href(assets, c("^green$", "green"))
@@ -461,8 +479,8 @@ have_ndvi <- TRUE
 s2_info <- tryCatch(
   fetch_latest_s2_aug(boundary),
   error = function(e) {
-    message("Warning: Sentinel-2 fetch failed: ", conditionMessage(e))
-    message("Continuing without NDVI; only elevation outputs will be generated.")
+    report(paste0("Warning: Sentinel-2 fetch failed: ", conditionMessage(e)), 0.03)
+    report("Continuing without NDVI; only elevation outputs will be generated.", 0.02)
     return(NULL)
   }
 )
@@ -600,14 +618,16 @@ kmeans_zones_1d <- function(r, k, seed = 1234) {
 zones_elev_list <- list()
 zones_ndvi_list <- list()
 
+kmeans_amount_per_k <- 0.15 / length(k_range)
+
 for (k in k_range) {
   k_str <- as.character(k)
 
-  message("Computing elevation-based k-means zones for k = ", k)
+  report(paste0("Computing elevation-based k-means zones for k = ", k), kmeans_amount_per_k)
   zones_elev_list[[k_str]] <- kmeans_zones_1d(dtm_field_2m, k = k)
 
   if (have_ndvi) {
-    message("Computing NDVI-based k-means zones for k = ", k)
+    report(paste0("Computing NDVI-based k-means zones for k = ", k), kmeans_amount_per_k)
     zones_ndvi_list[[k_str]] <- kmeans_zones_1d(nd_ng_seg, k = k)
   }
 }
@@ -629,9 +649,12 @@ if (apply_majority_filter_elev ||
     if (win_cells_ndvi %% 2 == 0) win_cells_ndvi <- win_cells_ndvi + 1L
     w_mmu_ndvi      <- matrix(1, win_cells_ndvi, win_cells_ndvi)
 
-    message(
-      "NDVI agg cellsize ~", round(cellsize_ndvi, 2),
-      " m; majority window = ", win_cells_ndvi, "x", win_cells_ndvi, " cells"
+    report(
+      paste0(
+        "NDVI agg cellsize ~", round(cellsize_ndvi, 2),
+        " m; majority window = ", win_cells_ndvi, "x", win_cells_ndvi, " cells"
+      ),
+      0.02
     )
   }
 
@@ -650,16 +673,18 @@ if (apply_majority_filter_elev ||
     )
   }
 
+  majority_amount_per_k <- 0.1 / length(k_range)
+
   for (k in k_range) {
     k_str <- as.character(k)
 
     if (apply_majority_filter_elev) {
-      message("Applying majority filter to elevation zones, k = ", k)
+      report(paste0("Applying majority filter to elevation zones, k = ", k), majority_amount_per_k)
       zones_elev_list[[k_str]] <- majority_filter(zones_elev_list[[k_str]], w_mmu_elev)
     }
 
     if (apply_majority_filter_ndvi && have_ndvi) {
-      message("Applying majority filter to NDVI zones, k = ", k)
+      report(paste0("Applying majority filter to NDVI zones, k = ", k), majority_amount_per_k)
       zones_ndvi_list[[k_str]] <- majority_filter(zones_ndvi_list[[k_str]], w_mmu_ndvi)
     }
   }
@@ -677,8 +702,10 @@ zones_to_polygons_smooth_terra <- function(zone_raster,
   }
 
   if (smooth_dist > 0 && n_passes > 0) {
-    message("Smoothing polygons: dist = ", smooth_dist,
-            " (", n_passes, " pass(es))")
+    report(
+      paste0("Smoothing polygons: dist = ", smooth_dist, " (", n_passes, " pass(es))"),
+      0.01
+    )
     for (i in seq_len(n_passes)) {
       v <- terra::buffer(v, width = smooth_dist)
       v <- terra::buffer(v, width = -smooth_dist)
@@ -766,13 +793,13 @@ for (k in k_range) {
   }
 }
 
-message("Elevation zone shapefiles (k = 2–5) written to: ", out_dir)
+report(paste0("Elevation zone shapefiles (k = 2–5) written to: ", out_dir), 0.03)
 if (have_ndvi) {
-  message("NDVI-based zone shapefiles (k = 2–5) written to: ", out_dir)
+  report(paste0("NDVI-based zone shapefiles (k = 2–5) written to: ", out_dir), 0.03)
 } else {
-  message("NDVI shapefiles skipped (no Sentinel-2 scene available).")
+  report("NDVI shapefiles skipped (no Sentinel-2 scene available).", 0.01)
 }
-message("Stylized contours shapefile written to: ", contours_path)
+report(paste0("Stylized contours shapefile written to: ", contours_path), 0.02)
 
 # --- multi-panel plots: elevation zones vs NDVI zones -------------------------
 # Elevation zones (raster) – 1=lowest (dark), k=highest (yellow or red)
