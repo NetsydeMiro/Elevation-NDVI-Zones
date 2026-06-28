@@ -272,18 +272,18 @@ label_contours_int <- function(contours_sty, is_highlight, label_cex_hi = 0.8) {
 
   cont_hi_diss <- terra::aggregate(cont_hi, by = "level")
 
-  set.seed(42)
-  lab_pts_hi <- tryCatch(
-    terra::spatSample(cont_hi_diss,
-                      size   = nrow(cont_hi_diss),
-                      method = "regular"),
-    error = function(e) terra::spatSample(cont_hi_diss,
-                                          size   = nrow(cont_hi_diss),
-                                          method = "random")
-  )
+  # spatSample() does not support sampling along lines, so pick the
+  # middle vertex of each level's contour as its label point instead.
+  verts_hi <- terra::as.points(cont_hi_diss)
+  levels_hi <- sort(unique(verts_hi$level))
+  mid_idx <- vapply(levels_hi, function(lv) {
+    idx <- which(verts_hi$level == lv)
+    idx[ceiling(length(idx) / 2)]
+  }, integer(1))
+  lab_pts_hi <- verts_hi[mid_idx, ]
 
   if (nrow(lab_pts_hi) > 0) {
-    lab_txt_hi <- as.character(round(cont_hi_diss$level))
+    lab_txt_hi <- as.character(round(lab_pts_hi$level))
     xy_hi      <- terra::crds(lab_pts_hi)
     text(xy_hi[, 1], xy_hi[, 2],
          labels = lab_txt_hi,
