@@ -1,0 +1,6 @@
+services:
+  elevation-ndvi-zones:
+    build: .
+    container_name: elevation-ndvi-zones
+    ports:
+      - "3838:3838"

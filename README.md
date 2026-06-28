@@ -15,10 +15,9 @@ Run locally:
 shiny::runApp(".")
 ```
 
-Run via Docker:
+Run via Docker Compose: 
 ```bash
-docker build -t elevation-ndvi-zones .
-docker run --rm -p 3838:3838 elevation-ndvi-zones
+docker compose up --build
 # then browse http://localhost:3838
 ```
 

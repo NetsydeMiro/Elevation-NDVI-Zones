@@ -38,13 +38,7 @@ ui <- page_sidebar(
       multiple = TRUE,
       accept = c(".geojson", ".json", ".shp", ".shx", ".dbf", ".prj", ".cpg", ".gpkg", ".kml")
     ),
-    helpText(
-      "Upload a GeoJSON/GPKG/KML file, or a full shapefile set ",
-      "(.shp + .shx + .dbf + .prj, select all at once). ",
-      "Need to draw a boundary? Try ",
-      a("geojson.io", href = "https://geojson.io", target = "_blank"),
-      " and upload the exported GeoJSON."
-    ),
+    uiOutput("boundary_prompt_ui"),
 
     accordion(
       open = c("Palette", "Zones"),
@@ -95,16 +89,13 @@ ui <- page_sidebar(
       )
     ),
 
-    actionButton("run", "Run analysis", class = "btn-primary"),
-    br(), br(),
     uiOutput("status_message")
   ),
 
   navset_tab(
     nav_panel("Elevation",
       div(class = "plot-tab-scroll",
-        imageOutput("plot_elevation", height = "auto"),
-        imageOutput("plot_contours", height = "auto")
+        uiOutput("elevation_panel_ui")
       )
     ),
     nav_panel("NDVI",
@@ -127,8 +118,13 @@ ui <- page_sidebar(
       actionButton("render_3d", "Render 3D view"),
       br(), br(),
       conditionalPanel(
-        "output.has_3d_view == false",
+        "output.has_run == false",
         p("Run the analysis, then click \"Render 3D view\".")
+      ),
+      conditionalPanel(
+        "output.has_3d_view == true",
+        p(class = "text-muted",
+          "Navigation: drag to pan • scroll or pinch to zoom • right-click drag (or Ctrl+drag) to rotate and tilt • \"2 + drag\" on touchscreens to rotate/tilt.")
       ),
       maplibreOutput("zones3d", height = "75vh")
     ),
@@ -150,6 +146,20 @@ server <- function(input, output, session) {
   })
 
   run_state <- reactiveVal(NULL)  # list(success, error, result) from web_harness
+
+  output$boundary_prompt_ui <- renderUI({
+    if (is.null(input$boundary_file)) {
+      helpText(
+        "Upload a GeoJSON/GPKG/KML file, or a full shapefile set ",
+        "(.shp + .shx + .dbf + .prj, select all at once). ",
+        "Need to draw a boundary? Try ",
+        a("geojson.io", href = "https://geojson.io", target = "_blank"),
+        " and upload the exported GeoJSON."
+      )
+    } else {
+      actionButton("run", "Run analysis", class = "btn-primary")
+    }
+  })
 
   observeEvent(input$run, {
     req(input$boundary_file)
@@ -228,6 +238,17 @@ server <- function(input, output, session) {
     }, deleteFile = FALSE)
   }
 
+  output$elevation_panel_ui <- renderUI({
+    rs <- run_state()
+    if (is.null(rs) || !isTRUE(rs$success)) {
+      return(p("Run the analysis to see this plot."))
+    }
+    tagList(
+      imageOutput("plot_elevation", height = "auto"),
+      imageOutput("plot_contours", height = "auto")
+    )
+  })
+
   output$plot_elevation        <- render_block_image("plot_elevation.png", "Elevation plot")
   output$plot_contours         <- render_block_image("plot_contours.png", "Contour plot")
   output$plot_elev_zones_grid  <- render_block_image("plot_elev_zones_grid.png", "Elevation zone grid")
@@ -285,6 +306,11 @@ server <- function(input, output, session) {
     !is.null(rendered_3d())
   })
   outputOptions(output, "has_3d_view", suspendWhenHidden = FALSE)
+
+  output$has_run <- reactive({
+    isTRUE(run_state()$success)
+  })
+  outputOptions(output, "has_run", suspendWhenHidden = FALSE)
 
   output$downloads_ui <- renderUI({
     rs <- run_state()

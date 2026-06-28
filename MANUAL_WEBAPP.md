@@ -42,7 +42,7 @@ A progress indicator shows while the app fetches your field's elevation and sate
 - **Elevation** — the elevation plot and contour-line plot for your field.
 - **NDVI** — the combined elevation/NDVI panel, if a usable satellite scene was found; otherwise a note explaining that NDVI was skipped.
 - **Zone maps** — grids showing the elevation zones (and NDVI zones, if available) at every generated zone count.
-- **3D view** — pick a zone source (Elevation, or NDVI if available), a zone count *k*, and a height exaggeration factor, then click "Render 3D view" for an interactive [MapLibre](MANUAL_GLOSSARY.md#maplibre) map you can pan, tilt, and rotate — higher zones appear taller.
+- **3D view** — pick a zone source (Elevation, or NDVI if available), a zone count *k*, and a height exaggeration factor, then click "Render 3D view" for an interactive [MapLibre](MANUAL_GLOSSARY.md#maplibre) map — higher zones appear taller. Navigation: drag to pan, scroll or pinch to zoom, right-click drag (or Ctrl+drag) to rotate and tilt the view, and "2 fingers + drag" to rotate/tilt on touchscreens.
 - **Downloads** — shows the detected field name and a "Download all shapefiles (.zip)" button.
 - **Manual** — this document, rendered for reference without leaving the app.
 
