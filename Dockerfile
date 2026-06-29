@@ -14,6 +14,7 @@ WORKDIR /srv/app
 COPY .Rprofile ./.Rprofile
 COPY R/ ./R/
 COPY app.R ./app.R
+COPY www/ ./www/
 COPY data/ ./data/
 COPY MANUAL_WEBAPP.md MANUAL_GLOSSARY.md ./
 
