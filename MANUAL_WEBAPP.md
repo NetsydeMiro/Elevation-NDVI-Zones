@@ -1,6 +1,6 @@
 # Manual for the Elevation + NDVI Zoning Web App
 
-This document explains how to use the Shiny web app ([`app.R`](app.R)) — the browser-based, no-code version of the zoning tool. It drives the same pipeline as [`R/hrdem_ndvi_zones.R`](R/hrdem_ndvi_zones.R) under the hood; if you'd rather work from the R console, see [MANUAL_SCRIPT.md](MANUAL_SCRIPT.md) instead. For term definitions and a plain-language settings reference, see [MANUAL_GLOSSARY.md](MANUAL_GLOSSARY.md).
+This document explains how to use the Shiny web app ([`app.R`](app.R)) — the browser-based, no-code version of the zoning tool. 
 
 ## What is this program for?
 

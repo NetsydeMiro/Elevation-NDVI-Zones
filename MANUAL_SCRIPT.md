@@ -1,6 +1,6 @@
 # Manual for the Elevation + NDVI Zoning Script
 
-This document explains what the script [`R/hrdem_ndvi_zones.R`](R/hrdem_ndvi_zones.R) does and why. If you just want to install and run it, see [README.md](README.md). For term definitions and a plain-language settings reference, see [MANUAL_GLOSSARY.md](MANUAL_GLOSSARY.md).
+This document explains what the script [`R/hrdem_ndvi_zones.R`](R/hrdem_ndvi_zones.R) does and why. 
 
 ## What is this program for?
 
