@@ -1,6 +1,4 @@
-# Manual for the Elevation + NDVI Zoning Web App
-
-This document explains how to use the Shiny web app ([`app.R`](app.R)) — the browser-based, no-code version of the zoning tool. 
+# Elevation + NDVI Zoning Web App
 
 ## What is this program for?
 

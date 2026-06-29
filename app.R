@@ -207,6 +207,7 @@ ui <- page_sidebar(
 
   navset_tab(
     id = "main_tabs",
+    selected = "About",
     nav_panel("Elevation",
       div(class = "plot-tab-scroll",
         uiOutput("elevation_panel_ui")
@@ -256,7 +257,7 @@ ui <- page_sidebar(
     nav_panel("Downloads",
       uiOutput("downloads_ui")
     ),
-    nav_panel("Manual",
+    nav_panel("About",
       uiOutput("manual_content")
     )
   )
@@ -449,7 +450,7 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$manual_jump_anchor, {
-    nav_select("main_tabs", "Manual", session = session)
+    nav_select("main_tabs", "About", session = session)
     session$sendCustomMessage("scrollToManualAnchor", input$manual_jump_anchor$anchor)
   })
 

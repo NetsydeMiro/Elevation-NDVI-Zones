@@ -8,7 +8,7 @@ zoning parameters with sliders, and view/download results in a browser, without 
 console. It calls the same `run_zone_pipeline()` function the script below defines (via
 [R/web_harness.R](R/web_harness.R)) — no separate logic, just a UI on top. See
 [MANUAL_WEBAPP.md](MANUAL_WEBAPP.md) for a full walkthrough (also viewable inside the app itself,
-under the "Manual" tab).
+under the "About" tab).
 
 Run locally:
 ```r

@@ -1,4 +1,4 @@
-# Manual for the Elevation + NDVI Zoning Script
+# Elevation + NDVI Zoning Script
 
 This document explains what the script [`R/hrdem_ndvi_zones.R`](R/hrdem_ndvi_zones.R) does and why. 
 
