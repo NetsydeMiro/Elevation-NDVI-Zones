@@ -24,17 +24,26 @@ library(mapgl)
 library(markdown)
 
 source(file.path("R", "web_harness.R"))
+source(file.path("R", "help_content.R"))
 
 current_year <- as.integer(format(Sys.Date(), "%Y"))
 
 ui <- page_sidebar(
   title = "Elevation + NDVI Zone Mapping",
-  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    tags$script(src = "help-popovers.js")
+  ),
   sidebar = sidebar(
     width = 360,
 
     fileInput(
-      "boundary_file", "Field boundary",
+      "boundary_file",
+      label_with_help(
+        "Field boundary",
+        "Upload your field's outline as GeoJSON, GPKG, KML, or a full shapefile set.",
+        "geojson"
+      ),
       multiple = TRUE,
       accept = c(".geojson", ".json", ".shp", ".shx", ".dbf", ".prj", ".cpg", ".gpkg", ".kml")
     ),
@@ -46,7 +55,12 @@ ui <- page_sidebar(
       accordion_panel(
         "Palette",
         radioButtons(
-          "palette_mode", "Colour palette",
+          "palette_mode",
+          label_with_help(
+            "Colour palette",
+            "Chooses the color scheme used in the plots — Turbo (cool-to-red) or Viridis (purple-to-yellow).",
+            "color-palette"
+          ),
           choices = c("Turbo" = "turbo", "Viridis" = "viridis"),
           selected = "turbo"
         )
@@ -54,38 +68,137 @@ ui <- page_sidebar(
 
       accordion_panel(
         "Zones",
-        sliderInput("k_range", "Number of zones (k)", min = 2, max = 8, value = c(2, 5), step = 1)
+        sliderInput(
+          "k_range",
+          label_with_help(
+            "Number of zones (k)",
+            "How many zone counts to generate, using k-means clustering to group similar elevation/NDVI values.",
+            "k-means-clustering"
+          ),
+          min = 2, max = 8, value = c(2, 5), step = 1
+        )
       ),
 
       accordion_panel(
         "NDVI processing",
-        sliderInput("ndvi_median_size", "NDVI smoothing window (odd)", min = 1, max = 9, value = 3, step = 2),
-        numericInput("ndvi_agg_fact", "NDVI aggregation factor", value = 2, min = 1, max = 10, step = 1)
+        sliderInput(
+          "ndvi_median_size",
+          label_with_help(
+            "NDVI smoothing window (odd)",
+            "Size of the median filter used to remove speckle/noise from the satellite greenness data before zoning.",
+            "median-filter"
+          ),
+          min = 1, max = 9, value = 3, step = 2
+        ),
+        numericInput(
+          "ndvi_agg_fact",
+          label_with_help(
+            "NDVI aggregation factor",
+            "How much to reduce the resolution of the NDVI data before grouping it into zones, to avoid jagged zone shapes.",
+            "ndvi"
+          ),
+          value = 2, min = 1, max = 10, step = 1
+        )
       ),
 
       accordion_panel(
         "Majority filter (minimum mapping unit)",
-        checkboxInput("apply_majority_filter_elev", "Apply to elevation zones", value = FALSE),
-        checkboxInput("apply_majority_filter_ndvi", "Apply to NDVI zones", value = TRUE),
-        numericInput("min_mapping_unit_m", "Minimum mapping unit (m)", value = 30, min = 1)
+        checkboxInput(
+          "apply_majority_filter_elev",
+          label_with_help(
+            "Apply to elevation zones",
+            "Cleans up small speckled patches in the elevation zone map by reassigning them to their surrounding neighborhood.",
+            "majority-filter"
+          ),
+          value = FALSE
+        ),
+        checkboxInput(
+          "apply_majority_filter_ndvi",
+          label_with_help(
+            "Apply to NDVI zones",
+            "Cleans up small speckled patches in the NDVI zone map by reassigning them to their surrounding neighborhood.",
+            "majority-filter"
+          ),
+          value = TRUE
+        ),
+        numericInput(
+          "min_mapping_unit_m",
+          label_with_help(
+            "Minimum mapping unit (m)",
+            "The smallest patch width, in meters, allowed to survive the speckle cleanup.",
+            "majority-filter"
+          ),
+          value = 30, min = 1
+        )
       ),
 
       accordion_panel(
         "Sentinel-2 search",
-        numericInput("s2_cloud_max", "Max cloud cover (%)", value = 20, min = 0, max = 100),
+        numericInput(
+          "s2_cloud_max",
+          label_with_help(
+            "Max cloud cover (%)",
+            "Maximum acceptable percentage of cloud cover in a satellite image; cloudier images are skipped.",
+            "cloud-cover"
+          ),
+          value = 20, min = 0, max = 100
+        ),
         selectizeInput(
-          "s2_months", "Preferred month(s)",
+          "s2_months",
+          label_with_help(
+            "Preferred month(s)",
+            "Month(s) of the year to prioritize when searching for a Sentinel-2 satellite image.",
+            "sentinel-2"
+          ),
           choices = setNames(1:12, month.name), selected = 8, multiple = TRUE
         ),
-        numericInput("s2_year", "Year (blank = current year)", value = NA, min = 2015, max = current_year),
-        sliderInput("s2_max_month_offset", "Search window (+/- months)", value = 3, min = 0, max = 6)
+        numericInput(
+          "s2_year",
+          label_with_help(
+            "Year (blank = current year)",
+            "Year to search for a satellite image; leave blank to use the current year.",
+            "sentinel-2"
+          ),
+          value = NA, min = 2015, max = current_year
+        ),
+        sliderInput(
+          "s2_max_month_offset",
+          label_with_help(
+            "Search window (+/- months)",
+            "How many months earlier/later than preferred the search can expand if no clean image is found.",
+            "sentinel-2"
+          ),
+          value = 3, min = 0, max = 6
+        )
       ),
 
       accordion_panel(
         "Contours & smoothing",
-        numericInput("contour_interval", "Contour interval (m)", value = 0.5, min = 0.1, step = 0.1),
-        numericInput("smooth_dist_elev", "Elevation zone smoothing distance (m)", value = 3, min = 0),
-        numericInput("smooth_dist_ndvi", "NDVI zone smoothing distance (m)", value = 0, min = 0)
+        numericInput(
+          "contour_interval",
+          label_with_help(
+            "Contour interval (m)",
+            "Vertical spacing between contour lines, in meters.",
+            "contour-line"
+          ),
+          value = 0.5, min = 0.1, step = 0.1
+        ),
+        numericInput(
+          "smooth_dist_elev",
+          label_with_help(
+            "Elevation zone smoothing distance (m)",
+            "Smooths elevation zone boundaries by this distance, in meters, for less jagged shapes."
+          ),
+          value = 3, min = 0
+        ),
+        numericInput(
+          "smooth_dist_ndvi",
+          label_with_help(
+            "NDVI zone smoothing distance (m)",
+            "Smooths NDVI zone boundaries by this distance, in meters, for less jagged shapes."
+          ),
+          value = 0, min = 0
+        )
       )
     ),
 
@@ -93,6 +206,7 @@ ui <- page_sidebar(
   ),
 
   navset_tab(
+    id = "main_tabs",
     nav_panel("Elevation",
       div(class = "plot-tab-scroll",
         uiOutput("elevation_panel_ui")
@@ -111,9 +225,20 @@ ui <- page_sidebar(
     ),
     nav_panel("3D view",
       fluidRow(
-        column(4, selectInput("zone_source_3d", "Source", choices = c("Elevation" = "elev"))),
+        column(4, selectInput(
+          "zone_source_3d",
+          label_with_help("Source", "Which zone layer (elevation or NDVI) to display in the 3D view."),
+          choices = c("Elevation" = "elev")
+        )),
         column(4, selectInput("zone_k_3d", "k", choices = character(0))),
-        column(4, numericInput("exaggeration_3d", "Height exaggeration", value = 40, min = 1))
+        column(4, numericInput(
+          "exaggeration_3d",
+          label_with_help(
+            "Height exaggeration",
+            "Multiplies vertical height differences in the 3D view to make zone elevation differences easier to see."
+          ),
+          value = 40, min = 1
+        ))
       ),
       actionButton("render_3d", "Render 3D view"),
       br(), br(),
@@ -321,6 +446,11 @@ server <- function(input, output, session) {
       p(sprintf("Field: %s", rs$result$field_name)),
       downloadButton("download_all", "Download all shapefiles (.zip)")
     )
+  })
+
+  observeEvent(input$manual_jump_anchor, {
+    nav_select("main_tabs", "Manual", session = session)
+    session$sendCustomMessage("scrollToManualAnchor", input$manual_jump_anchor$anchor)
   })
 
   output$manual_content <- renderUI({
